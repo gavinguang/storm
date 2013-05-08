@@ -1,6 +1,7 @@
 (ns backtype.storm.log
   (:require [clojure.tools [logging :as log]]))
-
+;依赖的库是https://github.com/clojure/tools.logging.git 
+;配置文件是conf/log4j.properties
 (defmacro log-message [& args]
   `(log/info (str ~@args)))
 

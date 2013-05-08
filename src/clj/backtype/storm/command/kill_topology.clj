@@ -3,7 +3,7 @@
   (:use [backtype.storm thrift config log])
   (:import [backtype.storm.generated KillOptions])
   (:gen-class))
-
+;在storm中,kill 一个 topology 的命令是: storm kill topology-name
 (defn -main [& args]
   (let [[{wait :wait} [name] _] (cli args ["-w" "--wait" :default nil :parse-fn #(Integer/parseInt %)])
         opts (KillOptions.)]
