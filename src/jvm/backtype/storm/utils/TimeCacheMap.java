@@ -14,7 +14,7 @@ import java.util.Map.Entry;
  * get, put, remove, containsKey, and size take O(numBuckets) time to run.
  *
  * The advantage of this design is that the expiration thread only locks the object
- * for O(1) time, meaning the object is essentially always available for gets/puts.
+ * for O(1) time, meaning the object is essentially(本质上) always available for gets/puts.
  */
 //deprecated in favor of non-threaded RotatingMap
 @Deprecated

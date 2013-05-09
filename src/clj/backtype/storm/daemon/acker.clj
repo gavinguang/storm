@@ -16,6 +16,10 @@
 (def ACKER-ACK-STREAM-ID "__ack_ack")
 (def ACKER-FAIL-STREAM-ID "__ack_fail")
 
+;acker 对于每个spout-tuple 保存一个ack-val校验值,它的初始值是0,
+;然后每发射一个tuple/ack一个tuple,那么tuple的id都要跟这个校验值异或一下,
+;并且把得到的值更新为ack-val的新值.假设每个发射出去的tuple都被ack了,那么
+;ack-val一定都是0(因为一个数字跟自己异或得到的值都是0)
 (defn- update-ack [curr-entry val]
   (let [old (get curr-entry :val 0)]
     (assoc curr-entry :val (bit-xor old val))
@@ -28,6 +32,7 @@
 (defn mk-acker-bolt []
   (let [output-collector (MutableObject.)
         pending (MutableObject.)]
+    ;这里是用clojure 实现了java的接口啊,有点神奇~~~ IBolt是一个java接口.
     (reify IBolt
       (^void prepare [this ^Map storm-conf ^TopologyContext context ^OutputCollector collector]
                (.setObject output-collector collector)
@@ -47,9 +52,11 @@
                                                          (assoc :spout-task (.getValue tuple 2)))
                                 ACKER-ACK-STREAM-ID (update-ack curr (.getValue tuple 1))
                                 ACKER-FAIL-STREAM-ID (assoc curr :failed true))]
+                   ;把每个tuple-id 得到的校验值存储起来.
                    (.put pending id curr)
                    (when (and curr (:spout-task curr))
                      (cond (= 0 (:val curr))
+                           ;当校验值为0,则 执行后续操作,在存储中删除该tuple-id ......
                            (do
                              (.remove pending id)
                              (acker-emit-direct output-collector
@@ -58,6 +65,7 @@
                                                 [id]
                                                 ))
                            (:failed curr)
+                           ;当失败了.......
                            (do
                              (.remove pending id)
                              (acker-emit-direct output-collector
