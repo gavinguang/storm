@@ -68,7 +68,7 @@
         vals
         flatten
         set )))
-
+;表示将外部世界的消息传递给本进程内的线程
 (defn mk-transfer-local-fn [worker]
   (let [short-executor-receive-queue-map (:short-executor-receive-queue-map worker)
         task->short-executor (:task->short-executor worker)
@@ -78,10 +78,11 @@
         (fast-map-iter [[short-executor pairs] grouped]
           (let [q (short-executor-receive-queue-map short-executor)]
             (if q
-              (disruptor/publish q pairs)
+              (disruptor/publish q pairs) ;用disruptor 在线程之间进行消息传递
               (log-warn "Received invalid messages for unknown tasks. Dropping... ")
               )))))))
 
+;将消息传递给外部进程
 (defn mk-transfer-fn [worker]
   (let [local-tasks (-> worker :task-ids set)
         local-transfer (:transfer-local-fn worker)
@@ -302,7 +303,8 @@
 (defn launch-receive-thread [worker]
   (log-message "Launching receive-thread for " (:assignment-id worker) ":" (:port worker))
   (msg-loader/launch-receive-thread!
-    (:mq-context worker)
+    (:mq-context worker);会使用storm.yaml中配置使用ZMQ或其他
+                        ;storm.messaging.transport: "backtype.storm.messaging.zmq"
     (:storm-id worker)
     (:port worker)
     (:transfer-local-fn worker)
@@ -316,8 +318,8 @@
     (log-message "Shut down default resources")))
 
 ;; TODO: should worker even take the storm-id as input? this should be
-;; deducable from cluster state (by searching through assignments)
-;; what about if there's inconsistency in assignments? -> but nimbus
+;; deducable(推断) from cluster state (by searching through assignments(分配))
+;; what about if there's inconsistency(不一致) in assignments? -> but nimbus
 ;; should guarantee this consistency
 ;; TODO: consider doing worker heartbeating rather than task heartbeating to reduce the load on zookeeper
 (defserverfn mk-worker [conf shared-mq-context storm-id assignment-id port worker-id]

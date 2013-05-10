@@ -20,7 +20,7 @@
           tuple/list-hash-code
           (mod num-tasks)
           task-getter))))
-
+;随机分组算法
 (defn- mk-shuffle-grouper [^List target-tasks]
   (let [choices (rotating-random-range target-tasks)]
     (fn [task-id tuple]
@@ -342,7 +342,7 @@
           (let [^TupleImpl tuple (if (instance? Tuple msg) msg (.deserialize deserializer msg))]
             (when debug? (log-message "Processing received message " tuple))
             (if task-id
-              (tuple-action-fn task-id tuple)
+              (tuple-action-fn task-id tuple);;当前以Bolt为例，所以会调用的tuple-action-fn定义于defmethod mk-threads :bolt [executor-data task-datas] 
               ;; null task ids are broadcast tuples
               (fast-list-iter [task-id task-ids]
                 (tuple-action-fn task-id tuple)
@@ -358,7 +358,7 @@
     (.prepare ret storm-conf)
     ret
     ))
-
+;多重方法.
 (defmethod mk-threads :spout [executor-data task-datas]
   (let [{:keys [storm-conf component-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
         ^ISpoutWaitStrategy spout-wait-strategy (init-spout-wait-strategy storm-conf)
@@ -393,7 +393,8 @@
                                       )))
                                 ;; TODO: on failure, emit tuple to failure stream
                                 ))))
-        receive-queue (:receive-queue executor-data)
+        receive-queue (:receive-queue executor-data) ;;那么mk-task-receiver是如何与disruptor关联起来的呢，可以见定义于mk-threads中的下述代码
+                                                     ;;到了这里，消息的发送与接收处理路径打通。
         event-handler (mk-task-receiver executor-data tuple-action-fn)
         has-ackers? (has-ackers? storm-conf)
         emitted-count (MutableLong. 0)

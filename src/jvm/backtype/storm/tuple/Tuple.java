@@ -5,6 +5,7 @@ import java.util.List;
 
 /**
  * The tuple is the main data structure in Storm. A tuple is a named list of values, 
+ * Tuple是Storm中主要的数据结构.Tuple可以是任意类型值的列表.
  * where each value can be any type. Tuples are dynamically typed -- the types of the fields 
  * do not need to be declared. Tuples have helper methods like getInteger and getString 
  * to get field values without having to cast the result.

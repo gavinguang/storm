@@ -566,13 +566,13 @@
            (pred k))
          amap)))
 
-
+;;将task列表随机打散.与acquire-random-range-id函数配合,实现随机分组(Shuffle grouping)算法.
 (defn rotating-random-range [choices]
   (let [rand (Random.)
         choices (ArrayList. choices)]
     (Collections/shuffle choices rand)
     [(MutableInt. -1) choices rand]))
-
+;;从task列表中选取一个task
 (defn acquire-random-range-id [[^MutableInt curr ^List state ^Random rand]]
   (when (>= (.increment curr) (.size state))
     (.set curr 0)
