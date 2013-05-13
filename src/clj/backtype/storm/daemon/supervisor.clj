@@ -4,7 +4,7 @@
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
   (:gen-class
-    :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]]))
+   :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]]))
 
 (bootstrap)
 
@@ -22,20 +22,20 @@
 
 (defn- assignments-snapshot [storm-cluster-state callback]
   (let [storm-ids (.assignments storm-cluster-state callback)]
-     (->> (dofor [sid storm-ids] {sid (.assignment-info storm-cluster-state sid callback)})
-          (apply merge)
-          (filter-val not-nil?)
-          )))
+    (->> (dofor [sid storm-ids] {sid (.assignment-info storm-cluster-state sid callback)})
+         (apply merge)
+         (filter-val not-nil?)
+         )))
 
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
         my-executors (filter (fn [[_ [node _]]] (= node assignment-id))
-                           (:executor->node+port assignment))
+                             (:executor->node+port assignment))
         port-executors (apply merge-with
-                          concat
-                          (for [[executor [_ port]] my-executors]
-                            {port [executor]}
-                            ))]
+                              concat
+                              (for [[executor [_ port]] my-executors]
+                                {port [executor]}
+                                ))]
     (into {} (for [[port executors] port-executors]
                ;; need to cast to int b/c it might be a long (due to how yaml parses things)
                ;; doall is to avoid serialization/deserialization problems with lazy seqs
@@ -71,8 +71,8 @@
   [conf]
   (let [ids (my-worker-ids conf)]
     (into {}
-      (dofor [id ids]
-        [id (read-worker-heartbeat conf id)]))
+          (dofor [id ids]
+                 [id (read-worker-heartbeat conf id)]))
     ))
 
 
@@ -96,14 +96,14 @@
             (let [state (cond
                          (or (not (contains? approved-ids id))
                              (not (matches-an-assignment? hb assigned-executors)))
-                           :disallowed
+                         :disallowed
                          (not hb)
-                           :not-started
+                         :not-started
                          (> (- now (:time-secs hb))
                             (conf SUPERVISOR-WORKER-TIMEOUT-SECS))
-                           :timed-out
+                         :timed-out
                          true
-                           :valid)]
+                         :valid)]
               (log-debug "Worker " id " is " state ": " (pr-str hb) " at supervisor time-secs " now)
               [id [state hb]]
               ))
@@ -142,9 +142,9 @@
     ;; this avoids a race condition with worker or subprocess writing pid around same time
     (rmpath (worker-pids-root conf id))
     (rmpath (worker-root conf id))
-  (catch RuntimeException e
-    (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
-    )))
+    (catch RuntimeException e
+      (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
+      )))
 
 (defn shutdown-worker [supervisor id]
   (log-message "Shutting down " (:supervisor-id supervisor) ":" id)
@@ -199,14 +199,14 @@
         ]
     ;; 1. to kill are those in allocated that are dead or disallowed
     ;; 2. kill the ones that should be dead
-    ;;     - read pids, kill -9 and individually remove file
+    ;;     - read pids, kill -9 and individually(个别,个人,个体) remove file
     ;;     - rmr heartbeat dir, rmdir pid dir, rmdir id dir (catch exception and log)
     ;; 3. of the rest, figure out what assignments aren't yet satisfied
     ;; 4. generate new worker ids, write new "approved workers" to LS
     ;; 5. create local dir for worker id
     ;; 5. launch new workers (give worker-id, port, and supervisor-id)
     ;; 6. wait for workers launch
-  
+    
     (log-debug "Syncing processes")
     (log-debug "Assigned executors: " assigned-executors)
     (log-debug "Allocated: " allocated)
@@ -230,21 +230,21 @@
     (wait-for-workers-launch
      conf
      (dofor [[port assignment] reassign-executors]
-       (let [id (new-worker-ids port)]
-         (log-message "Launching worker with assignment "
-                      (pr-str assignment)
-                      " for this supervisor "
-                      (:supervisor-id supervisor)
-                      " on port "
-                      port
-                      " with id "
-                      id
-                      )
-         (launch-worker supervisor
-                        (:storm-id assignment)
-                        port
-                        id)
-         id)))
+            (let [id (new-worker-ids port)]
+              (log-message "Launching worker with assignment "
+                           (pr-str assignment)
+                           " for this supervisor "
+                           (:supervisor-id supervisor)
+                           " on port "
+                           port
+                           " with id "
+                           id
+                           )
+              (launch-worker supervisor
+                             (:storm-id assignment)
+                             port
+                             id)
+              id)))
     ))
 
 (defn assigned-storm-ids-from-port-assignments [assignment]
@@ -264,8 +264,8 @@
           storm-code-map (read-storm-code-locations assignments-snapshot)
           downloaded-storm-ids (set (read-downloaded-storm-ids conf))
           all-assignment (read-assignments
-                           assignments-snapshot
-                           (:assignment-id supervisor))
+                          assignments-snapshot
+                          (:assignment-id supervisor))
           new-assignment (->> all-assignment
                               (filter-key #(.confirmAssigned isupervisor %)))
           assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
@@ -284,14 +284,14 @@
         (when (and (not (downloaded-storm-ids storm-id))
                    (assigned-storm-ids storm-id))
           (log-message "Downloading code for storm id "
-             storm-id
-             " from "
-             master-code-dir)
+                       storm-id
+                       " from "
+                       master-code-dir)
           (download-storm-code conf storm-id master-code-dir)
           (log-message "Finished downloading code for storm id "
-             storm-id
-             " from "
-             master-code-dir)
+                       storm-id
+                       " from "
+                       master-code-dir)
           ))
 
       (log-debug "Writing new assignment "
@@ -328,16 +328,16 @@
         sync-processes (partial sync-processes supervisor)
         synchronize-supervisor (mk-synchronize-supervisor supervisor sync-processes event-manager processes-event-manager)
         heartbeat-fn (fn [] (.supervisor-heartbeat!
-                               (:storm-cluster-state supervisor)
-                               (:supervisor-id supervisor)
-                               (SupervisorInfo. (current-time-secs)
-                                                (:my-hostname supervisor)
-                                                (:assignment-id supervisor)
-                                                (keys @(:curr-assignment supervisor))
-                                                ;; used ports
-                                                (.getMetadata isupervisor)
-                                                (conf SUPERVISOR-SCHEDULER-META)
-                                                ((:uptime supervisor)))))]
+                             (:storm-cluster-state supervisor)
+                             (:supervisor-id supervisor)
+                             (SupervisorInfo. (current-time-secs)
+                                              (:my-hostname supervisor)
+                                              (:assignment-id supervisor)
+                                              (keys @(:curr-assignment supervisor))
+                                              ;; used ports
+                                              (.getMetadata isupervisor)
+                                              (conf SUPERVISOR-SCHEDULER-META)
+                                              ((:uptime supervisor)))))]
     (heartbeat-fn)
     ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)
     (schedule-recurring (:timer supervisor)
@@ -354,31 +354,31 @@
                           (fn [] (.add processes-event-manager sync-processes))))
     (log-message "Starting supervisor with id " (:supervisor-id supervisor) " at host " (:my-hostname supervisor))
     (reify
-     Shutdownable
-     (shutdown [this]
-               (log-message "Shutting down supervisor " (:supervisor-id supervisor))
-               (reset! (:active supervisor) false)
-               (cancel-timer (:timer supervisor))
-               (.shutdown event-manager)
-               (.shutdown processes-event-manager)
-               (.disconnect (:storm-cluster-state supervisor)))
-     SupervisorDaemon
-     (get-conf [this]
-       conf)
-     (get-id [this]
-       (:supervisor-id supervisor))
-     (shutdown-all-workers [this]
-       (let [ids (my-worker-ids conf)]
-         (doseq [id ids]
-           (shutdown-worker supervisor id)
-           )))
-     DaemonCommon
-     (waiting? [this]
-       (or (not @(:active supervisor))
-           (and
-            (timer-waiting? (:timer supervisor))
-            (every? (memfn waiting?) managers)))
-           ))))
+      Shutdownable
+      (shutdown [this]
+        (log-message "Shutting down supervisor " (:supervisor-id supervisor))
+        (reset! (:active supervisor) false)
+        (cancel-timer (:timer supervisor))
+        (.shutdown event-manager)
+        (.shutdown processes-event-manager)
+        (.disconnect (:storm-cluster-state supervisor)))
+      SupervisorDaemon
+      (get-conf [this]
+        conf)
+      (get-id [this]
+        (:supervisor-id supervisor))
+      (shutdown-all-workers [this]
+        (let [ids (my-worker-ids conf)]
+          (doseq [id ids]
+            (shutdown-worker supervisor id)
+            )))
+      DaemonCommon
+      (waiting? [this]
+        (or (not @(:active supervisor))
+            (and
+             (timer-waiting? (:timer supervisor))
+             (every? (memfn waiting?) managers)))
+        ))))
 
 (defn kill-supervisor [supervisor]
   (.shutdown supervisor)
@@ -387,42 +387,42 @@
 ;; distributed implementation
 
 (defmethod download-storm-code
-    :distributed [conf storm-id master-code-dir]
-    ;; Downloading to permanent location is atomic
-    (let [tmproot (str (supervisor-tmp-dir conf) "/" (uuid))
-          stormroot (supervisor-stormdist-root conf storm-id)]
-      (FileUtils/forceMkdir (File. tmproot))
-      
-      (Utils/downloadFromMaster conf (master-stormjar-path master-code-dir) (supervisor-stormjar-path tmproot))
-      (Utils/downloadFromMaster conf (master-stormcode-path master-code-dir) (supervisor-stormcode-path tmproot))
-      (Utils/downloadFromMaster conf (master-stormconf-path master-code-dir) (supervisor-stormconf-path tmproot))
-      (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
-      (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
-      ))
+  :distributed [conf storm-id master-code-dir]
+  ;; Downloading to permanent location is atomic
+  (let [tmproot (str (supervisor-tmp-dir conf) "/" (uuid))
+        stormroot (supervisor-stormdist-root conf storm-id)]
+    (FileUtils/forceMkdir (File. tmproot))
+    
+    (Utils/downloadFromMaster conf (master-stormjar-path master-code-dir) (supervisor-stormjar-path tmproot))
+    (Utils/downloadFromMaster conf (master-stormcode-path master-code-dir) (supervisor-stormcode-path tmproot))
+    (Utils/downloadFromMaster conf (master-stormconf-path master-code-dir) (supervisor-stormconf-path tmproot))
+    (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
+    (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
+    ))
 
 
 (defmethod launch-worker
-    :distributed [supervisor storm-id port worker-id]
-    (let [conf (:conf supervisor)
-          stormroot (supervisor-stormdist-root conf storm-id)
-          stormjar (supervisor-stormjar-path stormroot)
-          storm-conf (read-supervisor-storm-conf conf storm-id)
-          classpath (add-to-classpath (current-classpath) [stormjar])
-          childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
-                                 "%ID%"
-                                 (str port))
-          logfilename (str "worker-" port ".log")
-          command (str "java -server " childopts
-                       " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
-                       " -Dlogfile.name=" logfilename
-                       " -Dstorm.home=" (System/getProperty "storm.home")
-                       " -Dlog4j.configuration=storm.log.properties"
-                       " -cp " classpath " backtype.storm.daemon.worker "
-                       (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
-                       " " port " " worker-id)]
-      (log-message "Launching worker with command: " command)
-      (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
-      ))
+  :distributed [supervisor storm-id port worker-id]
+  (let [conf (:conf supervisor)
+        stormroot (supervisor-stormdist-root conf storm-id)
+        stormjar (supervisor-stormjar-path stormroot)
+        storm-conf (read-supervisor-storm-conf conf storm-id)
+        classpath (add-to-classpath (current-classpath) [stormjar])
+        childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
+                               "%ID%"
+                               (str port))
+        logfilename (str "worker-" port ".log")
+        command (str "java -server " childopts
+                     " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
+                     " -Dlogfile.name=" logfilename
+                     " -Dstorm.home=" (System/getProperty "storm.home")
+                     " -Dlog4j.configuration=storm.log.properties"
+                     " -cp " classpath " backtype.storm.daemon.worker "
+                     (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
+                     " " port " " worker-id)]
+    (log-message "Launching worker with command: " command)
+    (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
+    ))
 
 ;; local implementation
 
@@ -433,38 +433,38 @@
        first ))
 
 (defmethod download-storm-code
-    :local [conf storm-id master-code-dir]
+  :local [conf storm-id master-code-dir]
   (let [stormroot (supervisor-stormdist-root conf storm-id)]
-      (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
-      (let [classloader (.getContextClassLoader (Thread/currentThread))
-            resources-jar (resources-jar)
-            url (.getResource classloader RESOURCES-SUBDIR)
-            target-dir (str stormroot "/" RESOURCES-SUBDIR)]
-            (cond
-              resources-jar
-              (do
-                (log-message "Extracting resources from jar at " resources-jar " to " target-dir)
-                (extract-dir-from-jar resources-jar RESOURCES-SUBDIR stormroot))
-              url
-              (do
-                (log-message "Copying resources at " (str url) " to " target-dir)
-                (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir))
-                ))
-            )))
+    (FileUtils/copyDirectory (File. master-code-dir) (File. stormroot))
+    (let [classloader (.getContextClassLoader (Thread/currentThread))
+          resources-jar (resources-jar)
+          url (.getResource classloader RESOURCES-SUBDIR)
+          target-dir (str stormroot "/" RESOURCES-SUBDIR)]
+      (cond
+       resources-jar
+       (do
+         (log-message "Extracting resources from jar at " resources-jar " to " target-dir)
+         (extract-dir-from-jar resources-jar RESOURCES-SUBDIR stormroot))
+       url
+       (do
+         (log-message "Copying resources at " (str url) " to " target-dir)
+         (FileUtils/copyDirectory (File. (.getFile url)) (File. target-dir))
+         ))
+      )))
 
 (defmethod launch-worker
-    :local [supervisor storm-id port worker-id]
-    (let [conf (:conf supervisor)
-          pid (uuid)
-          worker (worker/mk-worker conf
-                                   (:shared-context supervisor)
-                                   storm-id
-                                   (:assignment-id supervisor)
-                                   port
-                                   worker-id)]
-      (psim/register-process pid worker)
-      (swap! (:worker-thread-pids-atom supervisor) assoc worker-id pid)
-      ))
+  :local [supervisor storm-id port worker-id]
+  (let [conf (:conf supervisor)
+        pid (uuid)
+        worker (worker/mk-worker conf
+                                 (:shared-context supervisor)
+                                 storm-id
+                                 (:assignment-id supervisor)
+                                 port
+                                 worker-id)]
+    (psim/register-process pid worker)
+    (swap! (:worker-thread-pids-atom supervisor) assoc worker-id pid)
+    ))
 
 (defn -launch [supervisor]
   (let [conf (read-storm-config)]
@@ -478,9 +478,9 @@
       (prepare [this conf local-dir]
         (reset! conf-atom conf)
         (let [state (LocalState. local-dir)
-              curr-id (if-let [id (.get state LS-ID)]
+              curr-id (if-let [id (.get state LS-ID)] ;;LS-ID "supervisor-id" 
                         id
-                        (generate-supervisor-id))]
+                        (generate-supervisor-id))] ;;UUID/randomUUID
           (.put state LS-ID curr-id)
           (reset! id-atom curr-id))
         )

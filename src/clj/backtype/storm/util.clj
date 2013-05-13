@@ -43,6 +43,7 @@
 ;; name-with-attributes by Konrad Hinsen:
 (defn name-with-attributes
   "To be used in macro definitions.
+  在宏定义中使用.
    Handles optional docstrings and attribute maps for a name to be defined
    in a list of macro arguments. If the first macro argument is a string,
    it is added as a docstring to name and removed from the macro argument
@@ -68,10 +69,13 @@
 
 (defmacro defnk
  "Define a function accepting keyword arguments. Symbols up to the first
+ 定义一个接收keyword参数的函数.参数列表的地一个keyword做为固定参数.
  keyword in the parameter list are taken as positional arguments.  Then
  an alternating sequence of keywords and defaults values is expected. The
+ 然而也期望i一个可选的keyword sequence 和默认值.
  values of the keyword arguments are available in the function body by
- virtue of the symbol corresponding to the keyword (cf. :keys destructuring).
+
+ virtue of the symbol corresponding(相应的) to the keyword (cf. :keys destructuring).
  defnk accepts an optional docstring as well as an optional metadata map."
  [fn-name & fn-tail]
  (let [[fn-name [args & body]] (name-with-attributes fn-name fn-tail)

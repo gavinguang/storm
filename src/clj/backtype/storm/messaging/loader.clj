@@ -19,14 +19,14 @@
   [context storm-id port transfer-local-fn max-buffer-size
    :daemon true
    :kill-fn (fn [t] (System/exit 1))
-   :priority Thread/NORM_PRIORITY]
+   :priority Thread/NORM_PRIORITY];优先级
   (let [max-buffer-size (int max-buffer-size)
         vthread (async-loop
                  (fn []
                    (let [socket (msg/bind context storm-id port)]
                      (fn []
                        (let [batched (ArrayList.)
-                             init (msg/recv socket)]
+                             init (msg/recv socket)] ;;接受到的消息.
                          (loop [[task msg :as packet] init]
                            (if (= task -1)
                              (do (log-message "Receiving-thread:[" storm-id ", " port "] received shutdown notice")
@@ -36,7 +36,7 @@
                                (when packet (.add batched packet))
                                (if (and packet (< (.size batched) max-buffer-size))
                                  (recur (msg/recv-with-flags socket 1))
-                                 (do (transfer-local-fn batched)
+                                 (do (transfer-local-fn batched);将接受到的TaskMessage传递给相应的executor
                                      0 )))))))))
                  :factory? true
                  :daemon daemon
